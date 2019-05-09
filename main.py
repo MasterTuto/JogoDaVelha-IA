@@ -1,6 +1,5 @@
 #coding: utf-8
 
-from wx.lib.buttons import GenBitmapButton
 import random
 import wx
 
@@ -73,7 +72,7 @@ class meuFrame(wx.Frame):
 
             sizerPrincipal.Add(sizerLinha, 1, wx.CENTER | wx.EXPAND)
 
-        nivelDeDificuldade = wx.Choice(self, choices=['Fácil', 'Médio'])#, 'Difícil'])
+        nivelDeDificuldade = wx.Choice(self, choices=['Fácil', 'Médio', 'Difícil'])
         nivelDeDificuldade.SetSelection(1)
         
         botaoResetarJogo = wx.Button(self, label="Resetar")
@@ -130,8 +129,124 @@ class meuFrame(wx.Frame):
     def obter_melhor_jogada_facil(self):
         return random.choice(self.posicoesDisponiveis)
 
+    def analisar_possibilidades(self):
+        vezDe = 'X' if self.vezDe == 'O' else 'O'
+        self.posicoesMaisPossiveis = {
+            'ataque': {
+                1: [],
+                2: []
+            },
+            'defesa': {
+                1: [],
+                2: []
+            },
+            'neutros': {
+                0: []
+            }
+        }
+
+        for possibilidade in self.valoresVencedores:
+            posicao1 = possibilidade[0] 
+            posicao2 = possibilidade[1]
+            posicao3 = possibilidade[2]
+            
+            valorBotaoUm   = self.botoes[posicao1[0]][posicao1[1]].GetLabelText()
+            valorBotaoDois = self.botoes[posicao2[0]][posicao2[1]].GetLabelText()
+            valorBotaoTres = self.botoes[posicao3[0]][posicao3[1]].GetLabelText()
+
+            posicoes = [posicao1, posicao2, posicao3]
+            valoresDosBotoes = [valorBotaoUm, valorBotaoDois, valorBotaoTres]
+            valoresX = valoresDosBotoes.count("X")
+            valoresO = valoresDosBotoes.count("O")
+
+            if valoresX + valoresO == 3:
+                continue
+            elif valoresX == valoresO:
+                possibilidade = 0
+                posicao       = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
+                self.posicoesMaisPossiveis['neutros'][possibilidade].append(posicao)
+            
+            elif valoresX == 2:
+                possibilidade = 2
+                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
+                
+                if vezDe is 'X':
+                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
+                else:
+                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
+            elif valoresX == 1:
+                possibilidade = 1
+                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
+                
+                if vezDe is 'X':
+                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
+                else:
+                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
+
+            elif valoresO == 2:
+                possibilidade = 2
+                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
+                
+                if vezDe is 'O':
+                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
+                else:
+                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
+            elif valoresO == 1:
+                possibilidade = 1
+                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
+                
+                if vezDe is 'O':
+                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
+                else:
+                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
+            
+            else:
+                print("OPPAA!! NÃO PREVI ISSO!!!")
+
     def obter_melhor_jogada_medio(self, defesaOuAtaque=-1):
         wx.BeginBusyCursor()
+
+        self.analisar_possibilidades()
+        
+        try:
+            print(self.posicoesMaisPossiveis)
+            if defesaOuAtaque == -1:
+                numeroDefesas = len(self.posicoesMaisPossiveis['defesa'][1]) + len(self.posicoesMaisPossiveis['defesa'][2])
+                numeroAtaques = len(self.posicoesMaisPossiveis['ataque'][1]) + len(self.posicoesMaisPossiveis['ataque'][2])
+                
+                if numeroDefesas > 0 and numeroAtaques > 0:
+                    defesaOuAtaque = random.choice(['defesa', 'ataque'])
+                
+                elif numeroAtaques > 0:
+                    defesaOuAtaque = 'ataque'
+                
+                elif numeroDefesas > 0:
+                    defesaOuAtaque = 'defesa'
+                
+                else:
+                    defesaOuAtaque = 'neutros'
+
+            if 0 not in self.posicoesMaisPossiveis[defesaOuAtaque]:
+                if len(self.posicoesMaisPossiveis[defesaOuAtaque][2]) > 0:
+                    melhorPosicao = random.choice(self.posicoesMaisPossiveis[defesaOuAtaque][2])
+                elif len(self.posicoesMaisPossiveis[defesaOuAtaque][1]) > 0:
+                    melhorPosicao = random.choice(self.posicoesMaisPossiveis[defesaOuAtaque][1])
+                else:
+                    wx.EndBusyCursor()
+                    return False
+            else:
+                melhorPosicao = random.choice(self.posicoesMaisPossiveis[defesaOuAtaque][0])
+            
+            botao = self.botoes[melhorPosicao[0]][melhorPosicao[1]]
+        except IndexError: # posicoesMaisPossiveis está vazia
+            botao = False
+        wx.EndBusyCursor()
+        return botao
+
+    def obter_melhor_jogada_dificil(self, defesaOuAtaque=-1):
+        wx.BeginBusyCursor()
+
+        self.analisar_possibilidades()
 
         vezDe = 'X' if self.vezDe == 'O' else 'O'
         self.posicoesMaisPossiveis = {
@@ -213,7 +328,18 @@ class meuFrame(wx.Frame):
                 numeroAtaques = len(self.posicoesMaisPossiveis['ataque'][1]) + len(self.posicoesMaisPossiveis['ataque'][2])
                 
                 if numeroDefesas > 0 and numeroAtaques > 0:
-                    defesaOuAtaque = random.choice(['defesa', 'ataque'])
+                    maioresValores = {b: (len(self.posicoesMaisPossiveis[b][1]), len(self.posicoesMaisPossiveis[b][2]))
+                                     for b in self.posicoesMaisPossiveis if b != 'neutros'}
+                    maiorValoresPossibilidade1 = sorted(maioresValores, key=lambda x: maioresValores[x][0])[-1]
+                    maiorValoresPossibilidade2 = sorted(maioresValores, key=lambda x: maioresValores[x][1])[-1]
+                    
+                    print(maioresValores)
+                    if maioresValores[maiorValoresPossibilidade2][1] > 0:
+                        defesaOuAtaque = maiorValoresPossibilidade2
+                    else:
+                        defesaOuAtaque = maiorValoresPossibilidade1
+                    
+                    #defesaOuAtaque = random.choice(['defesa', 'ataque'])
                 
                 elif numeroAtaques > 0:
                     defesaOuAtaque = 'ataque'
@@ -240,9 +366,6 @@ class meuFrame(wx.Frame):
             botao = False
         wx.EndBusyCursor()
         return botao
-
-    def obter_melhor_jogada_dificil(self):
-        pass
 
     def marcar_jogada_do_pc(self):
         if self.nivelDificuldade == 0:
