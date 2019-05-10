@@ -1,6 +1,7 @@
 # Jogo da velha com inteligência artificial
 
 Jogo da velha com inteligência artificial escrita em Python puro. Apenas usando o wxPython para ser a interface do usuário.
+[![License: IPL 1.0](https://img.shields.io/badge/License-IPL%201.0-blue.svg)](https://opensource.org/licenses/IPL-1.0)
 
 ### Testado em:
 
