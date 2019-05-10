@@ -2,7 +2,7 @@
 
 Jogo da velha com inteligência artificial escrita em Python puro. Apenas usando o wxPython para ser a interface do usuário.
 
-### Detalhes
+### Testado em:
 
 **Versão do Python:** 3.7.3 (x64)
 
