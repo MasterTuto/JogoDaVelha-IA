@@ -21,8 +21,12 @@ class meuFrame(wx.Frame):
 
     nivelDificuldade = 1
 
+    pontuacaoUsuario = 0
+    pontuacaoPC      = 0
+
     def __init__(self, *args, **kwargs):
         wx.Frame.__init__(self, *args, **kwargs)
+        self.SetBackgroundColour(wx.Colour(255,255,255))
 
         sizerPrincipal = wx.BoxSizer(wx.VERTICAL)
 
@@ -30,8 +34,18 @@ class meuFrame(wx.Frame):
         while not self.nomeUsuario:
             self.nomeUsuario = wx.GetTextFromUser("Insira o nome do jogador:", "", default_value="Jogador 1")
 
-        textoBemVindo = wx.StaticText(self, label="Seja bem Vindo, "+self.nomeUsuario+"!")
-        sizerPrincipal.Add(textoBemVindo)
+        self.textoBemVindo = wx.Button(self, style=wx.BORDER_NONE | wx.BU_EXACTFIT, size=(-1, 45))#label="Seja bem Vindo, "+self.nomeUsuario+"!")
+        self.corPadraoDeBotao = wx.Colour(255, 255, 255)
+        self.textoBemVindo.SetBackgroundColour(wx.Colour(255,255,255))
+        textoMarkup = ''
+        textoMarkup = ("<span foreground='black'>Seja bem-vindo,</span> <b>{nome}</b>!\n"
+                       "Placar atual é: {nome}={pontuacaoUsuario} x PC={pontuacaoPC}").format(
+            nome=self.nomeUsuario,
+            pontuacaoUsuario=self.pontuacaoUsuario,
+            pontuacaoPC=self.pontuacaoPC)
+        self.textoBemVindo.SetLabelMarkup(textoMarkup)
+        self.textoBemVindo.Disable()
+        sizerPrincipal.Add(self.textoBemVindo, 0, wx.CENTER | wx.EXPAND | wx.ALL ^ wx.BOTTOM, 6)
 
         self.dicionarioVez = {
             "X": wx.Bitmap("x.png", wx.BITMAP_TYPE_PNG),
@@ -65,13 +79,24 @@ class meuFrame(wx.Frame):
             sizerLinha = wx.BoxSizer(wx.HORIZONTAL)
             for botao in linha:
                 botao.SetLabelText('')
+                botao.SetBackgroundColour(wx.Colour(255, 255, 255))
                 botao.SetBitmap(self.dicionarioVez['BLANK'])
+                botao.SetWindowStyle(wx.BU_NOTEXT | wx.BORDER_NONE)
+                botao.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+
                 self.posicoesDisponiveis.append(botao)
                 botao.Bind(wx.EVT_BUTTON, self.marcar_jogada_do_usuario)
+                botao.Bind(wx.EVT_ENTER_WINDOW, self.mudar_cor_botao)
+                botao.Bind(wx.EVT_LEAVE_WINDOW, self.mudar_cor_botao)
                 sizerLinha.Add(botao, 1, wx.CENTER | wx.EXPAND)
+                if botao != linha[-1]:
+                    sizerLinha.Add(wx.StaticLine(self, size=(1, 95), style=wx.LI_VERTICAL), 0, wx.CENTER | wx.LEFT, 5)
 
-            sizerPrincipal.Add(sizerLinha, 1, wx.CENTER | wx.EXPAND)
+            sizerPrincipal.Add(sizerLinha, 1, wx.CENTER | wx.EXPAND | wx.ALL ^ wx.BOTTOM, 5)
+            if linha != self.botoes[-1]:
+                sizerPrincipal.Add(wx.StaticLine(self, size=(430, 1)), 0, wx.CENTER | wx.TOP, 5)
 
+        textoNivelDeDificuldade = wx.StaticText(self, label="Nível de dificuldade:")
         nivelDeDificuldade = wx.Choice(self, choices=['Fácil', 'Médio', 'Difícil'])
         nivelDeDificuldade.SetSelection(1)
         
@@ -83,15 +108,25 @@ class meuFrame(wx.Frame):
 
         sizerConfiguracoes = wx.BoxSizer(wx.HORIZONTAL)
 
-        sizerConfiguracoes.Add(nivelDeDificuldade, 0, wx.CENTER | wx.EXPAND)
+        sizerConfiguracoes.Add(textoNivelDeDificuldade, 0, wx.CENTER | wx.RIGHT, 6)
+        sizerConfiguracoes.Add(nivelDeDificuldade, 0, wx.CENTER | wx.RIGHT | wx.EXPAND, 6)
         sizerConfiguracoes.Add(botaoResetarJogo,   0, wx.CENTER | wx.EXPAND)
 
-        sizerPrincipal.Add(sizerConfiguracoes, 0, wx.CENTER)
+        sizerPrincipal.Add(sizerConfiguracoes, 0, wx.ALIGN_RIGHT | wx.ALL, 10)
 
         self.SetSizer(sizerPrincipal)
         self.SetAutoLayout(1)
-        sizerPrincipal.Fit(self)
+        self.Center()
+        # sizerPrincipal.Fit(self)
         self.Show()
+
+    def mudar_cor_botao(self, evento):
+        botao = evento.GetEventObject()
+        if botao.GetBackgroundColour() != wx.Colour(0, 255, 0):
+            if evento.Entering():
+                botao.SetBackgroundColour(wx.Colour(*(243,)*3))
+            elif evento.Leaving():
+                botao.SetBackgroundColour(self.corPadraoDeBotao)
 
     def mudar_dificuldade(self, event):
         self.nivelDificuldade = event.GetInt()
@@ -107,6 +142,8 @@ class meuFrame(wx.Frame):
             valorBotaoTres = self.botoes[posicao3[0]][posicao3[1]].GetLabelText()
 
             if valorBotaoUm == valorBotaoDois == valorBotaoTres != '':
+                for posicao in [posicao1, posicao2, posicao3]:
+                    self.botoes[posicao[0]][posicao[1]].SetBackgroundColour(wx.Colour(0, 255, 0))
                 return 1
 
         if len(self.posicoesDisponiveis) == 0:
@@ -115,16 +152,23 @@ class meuFrame(wx.Frame):
         return -1
 
     def resetar_jogo(self, event=None):
+        if self.vezDe == 'X':
+            self.vezDe = 'O'
+        else:
+            self.vezDe = 'X'
+        
         self.posicoesDisponiveis = []
         
         for linha in self.botoes:
             for botao in linha:
                 self.posicoesDisponiveis.append(botao)
                 botao.SetLabelText('')
+                botao.SetBackgroundColour(self.corPadraoDeBotao)
                 botao.SetBitmap(self.dicionarioVez['BLANK'])
                 botao.Enable()
 
-        self.marcar_jogada_do_pc()
+        if self.vezDe is 'X':
+            self.marcar_jogada_do_pc()
 
     def obter_melhor_jogada_facil(self):
         return random.choice(self.posicoesDisponiveis)
@@ -247,82 +291,8 @@ class meuFrame(wx.Frame):
         wx.BeginBusyCursor()
 
         self.analisar_possibilidades()
-
-        vezDe = 'X' if self.vezDe == 'O' else 'O'
-        self.posicoesMaisPossiveis = {
-            'ataque': {
-                1: [],
-                2: []
-            },
-            'defesa': {
-                1: [],
-                2: []
-            },
-            'neutros': {
-                0: []
-            }
-        }
-
-        for possibilidade in self.valoresVencedores:
-            posicao1 = possibilidade[0] 
-            posicao2 = possibilidade[1]
-            posicao3 = possibilidade[2]
-            
-            valorBotaoUm   = self.botoes[posicao1[0]][posicao1[1]].GetLabelText()
-            valorBotaoDois = self.botoes[posicao2[0]][posicao2[1]].GetLabelText()
-            valorBotaoTres = self.botoes[posicao3[0]][posicao3[1]].GetLabelText()
-
-            posicoes = [posicao1, posicao2, posicao3]
-            valoresDosBotoes = [valorBotaoUm, valorBotaoDois, valorBotaoTres]
-            valoresX = valoresDosBotoes.count("X")
-            valoresO = valoresDosBotoes.count("O")
-
-            if valoresX + valoresO == 3:
-                continue
-            elif valoresX == valoresO:
-                possibilidade = 0
-                posicao       = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
-                self.posicoesMaisPossiveis['neutros'][possibilidade].append(posicao)
-            
-            elif valoresX == 2:
-                possibilidade = 2
-                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
-                
-                if vezDe is 'X':
-                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
-                else:
-                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
-            elif valoresX == 1:
-                possibilidade = 1
-                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
-                
-                if vezDe is 'X':
-                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
-                else:
-                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
-
-            elif valoresO == 2:
-                possibilidade = 2
-                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
-                
-                if vezDe is 'O':
-                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
-                else:
-                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
-            elif valoresO == 1:
-                possibilidade = 1
-                posicao = [posicao for posicao in posicoes if self.botoes[posicao[0]][posicao[1]].GetLabelText() == ''][0]
-                
-                if vezDe is 'O':
-                    self.posicoesMaisPossiveis['ataque'][possibilidade].append( posicao )
-                else:
-                    self.posicoesMaisPossiveis['defesa'][possibilidade].append(posicao)
-            
-            else:
-                print("OPPAA!! NÃO PREVI ISSO!!!")
         
         try:
-            print(self.posicoesMaisPossiveis)
             if defesaOuAtaque == -1:
                 numeroDefesas = len(self.posicoesMaisPossiveis['defesa'][1]) + len(self.posicoesMaisPossiveis['defesa'][2])
                 numeroAtaques = len(self.posicoesMaisPossiveis['ataque'][1]) + len(self.posicoesMaisPossiveis['ataque'][2])
@@ -330,10 +300,17 @@ class meuFrame(wx.Frame):
                 if numeroDefesas > 0 and numeroAtaques > 0:
                     maioresValores = {b: (len(self.posicoesMaisPossiveis[b][1]), len(self.posicoesMaisPossiveis[b][2]))
                                      for b in self.posicoesMaisPossiveis if b != 'neutros'}
+                    print("-"*20)
+                    print(maioresValores)
+                    maiorValoresPossibilidade1 = sorted(maioresValores, key=lambda x: maioresValores[x][0])
+                    print(maiorValoresPossibilidade1)
+                    maiorValoresPossibilidade2 = sorted(maioresValores, key=lambda x: maioresValores[x][1])
+                    print(maiorValoresPossibilidade2)
+                    print("-"*20)
+
                     maiorValoresPossibilidade1 = sorted(maioresValores, key=lambda x: maioresValores[x][0])[-1]
                     maiorValoresPossibilidade2 = sorted(maioresValores, key=lambda x: maioresValores[x][1])[-1]
                     
-                    print(maioresValores)
                     if maioresValores[maiorValoresPossibilidade2][1] > 0:
                         defesaOuAtaque = maiorValoresPossibilidade2
                     else:
@@ -351,6 +328,7 @@ class meuFrame(wx.Frame):
                     defesaOuAtaque = 'neutros'
 
             if 0 not in self.posicoesMaisPossiveis[defesaOuAtaque]:
+                print(defesaOuAtaque, self.posicoesMaisPossiveis[defesaOuAtaque])
                 if len(self.posicoesMaisPossiveis[defesaOuAtaque][2]) > 0:
                     melhorPosicao = random.choice(self.posicoesMaisPossiveis[defesaOuAtaque][2])
                 elif len(self.posicoesMaisPossiveis[defesaOuAtaque][1]) > 0:
@@ -372,6 +350,7 @@ class meuFrame(wx.Frame):
             botao = self.obter_melhor_jogada_facil()
         elif self.nivelDificuldade == 1:
             botao = self.obter_melhor_jogada_medio()
+            if not botao: print('botao:', botao)
             botao = botao if botao else random.choice(self.posicoesDisponiveis)
         elif self.nivelDificuldade == 2:
             botao = self.obter_melhor_jogada_dificil()
@@ -391,15 +370,24 @@ class meuFrame(wx.Frame):
     def terminar_jogo(self, jogador):
         for linha in self.botoes:
             for botao in linha:
-                botao.Disable()
+                botao.Disable() if botao in self.posicoesDisponiveis else None
 
         if isinstance(jogador, str):
             mensagem = "Parabéns, você ganhou o jogo!"
+            self.pontuacaoUsuario += 1
         else:
             if jogador == 1:
                 mensagem = "Que pena, " + self.nomeUsuario + " você se lascou!"
+                self.pontuacaoPC += 1
             else:
                 mensagem = "Deu velha!"
+
+        textoMarkup = ("<span foreground='black'>Seja bem-vindo,</span> <b>{nome}</b>!\n"
+                       "Placar atual é: {nome}={pontuacaoUsuario} x PC={pontuacaoPC}").format(
+            nome=self.nomeUsuario,
+            pontuacaoUsuario=self.pontuacaoUsuario,
+            pontuacaoPC=self.pontuacaoPC)
+        self.textoBemVindo.SetLabelMarkup(textoMarkup)
         
         wx.MessageDialog(self, mensagem, "Notícia quentinha", wx.ICON_INFORMATION).ShowModal()
 
@@ -425,7 +413,7 @@ class meuFrame(wx.Frame):
 
 def main():
     app = wx.App()
-    janela = meuFrame(None, title="Jogo de velha")
+    janela = meuFrame(None, title="Jogo de velha", size=(500,500))
     app.MainLoop()
 
 if __name__ == '__main__':
